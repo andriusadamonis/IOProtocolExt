@@ -56,6 +56,8 @@ namespace IOProtocolExt.Forms
 			m_cbFtpsImplicit.Checked = cfg.GetBool(IopDefs.OptFtpsImplicit, false);
 			m_cbFtpsExplicitSsl.Checked = cfg.GetBool(IopDefs.OptFtpsExplicitSsl, false);
 			m_cbFtpsExplicitTls.Checked = cfg.GetBool(IopDefs.OptFtpsExplicitTls, false);
+			
+			m_tbPrivateKey.Text = cfg.GetString(IopDefs.OptSshPrivateKey, "");
 
 			EnableControlsEx();
 		}
@@ -80,6 +82,7 @@ namespace IOProtocolExt.Forms
 			CfgSetBool(cfg, IopDefs.OptFtpsImplicit, m_cbFtpsImplicit.Checked, false);
 			CfgSetBool(cfg, IopDefs.OptFtpsExplicitSsl, m_cbFtpsExplicitSsl.Checked, false);
 			CfgSetBool(cfg, IopDefs.OptFtpsExplicitTls, m_cbFtpsExplicitTls.Checked, false);
+			CfgSetString(cfg, IopDefs.OptSshPrivateKey, m_tbPrivateKey.Text, "");
 		}
 
 		private static void CfgSetBool(AceCustomConfig cfg, string strKey,
@@ -90,6 +93,17 @@ namespace IOProtocolExt.Forms
 			{
 				try { cfg.SetString(strKey, null); }
 				catch(Exception) { Debug.Assert(false); cfg.SetBool(strKey, bValue); }
+			}
+		}
+
+		private static void CfgSetString(AceCustomConfig cfg, string strKey,
+			string sValue, string sDefault)
+		{
+			if(sValue != sDefault) cfg.SetString(strKey, sValue);
+			else
+			{
+				try { cfg.SetString(strKey, null); }
+				catch(Exception) { Debug.Assert(false); cfg.SetString(strKey, sValue); }
 			}
 		}
 

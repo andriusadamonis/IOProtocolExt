@@ -409,6 +409,12 @@ namespace IOProtocolExt
 					str += " -explicittls";
 			}
 
+      if(strSessionUrl.StartsWith("scp:", StrUtil.CaseIgnoreCmp))
+      {
+        string strPrivateKey = cfg.GetString(IopDefs.OptSshPrivateKey, "");
+        if(!string.IsNullOrEmpty(strPrivateKey))
+          str += " -privatekey=" + strPrivateKey;
+      }
 			// if(!string.IsNullOrEmpty(strHostKey))
 			//	str += " -hostkey=\"" + strHostKey + "\"";
 			str += " -hostkey=*";

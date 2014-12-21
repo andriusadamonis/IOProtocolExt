@@ -37,6 +37,8 @@
 			this.m_cbFtpsExplicitTls = new System.Windows.Forms.CheckBox();
 			this.m_cbFtpsExplicitSsl = new System.Windows.Forms.CheckBox();
 			this.m_cbFtpsImplicit = new System.Windows.Forms.CheckBox();
+			this.m_tbPrivateKey = new System.Windows.Forms.TextBox();
+			this.m_lbPrivateKey = new System.Windows.Forms.Label();
 			this.m_grpConn.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.m_numTimeout)).BeginInit();
 			this.m_grpFtps.SuspendLayout();
@@ -45,7 +47,7 @@
 			// m_btnOK
 			// 
 			this.m_btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-			this.m_btnOK.Location = new System.Drawing.Point(175, 169);
+			this.m_btnOK.Location = new System.Drawing.Point(175, 205);
 			this.m_btnOK.Name = "m_btnOK";
 			this.m_btnOK.Size = new System.Drawing.Size(75, 23);
 			this.m_btnOK.TabIndex = 0;
@@ -56,7 +58,7 @@
 			// m_btnCancel
 			// 
 			this.m_btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.m_btnCancel.Location = new System.Drawing.Point(256, 169);
+			this.m_btnCancel.Location = new System.Drawing.Point(256, 205);
 			this.m_btnCancel.Name = "m_btnCancel";
 			this.m_btnCancel.Size = new System.Drawing.Size(75, 23);
 			this.m_btnCancel.TabIndex = 1;
@@ -78,10 +80,10 @@
 			// 
 			this.m_numTimeout.Location = new System.Drawing.Point(221, 19);
 			this.m_numTimeout.Maximum = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            0});
+			10000,
+			0,
+			0,
+			0});
 			this.m_numTimeout.Name = "m_numTimeout";
 			this.m_numTimeout.Size = new System.Drawing.Size(61, 20);
 			this.m_numTimeout.TabIndex = 1;
@@ -140,13 +142,30 @@
 			this.m_cbFtpsImplicit.Text = "Implicit SSL/TLS";
 			this.m_cbFtpsImplicit.UseVisualStyleBackColor = true;
 			// 
+			// m_tbPrivateKey
+			// 
+			this.m_tbPrivateKey.Location = new System.Drawing.Point(93, 168);
+			this.m_tbPrivateKey.Name = "m_tbPrivateKey";
+			this.m_tbPrivateKey.Size = new System.Drawing.Size(227, 20);
+			this.m_tbPrivateKey.TabIndex = 4;
+			// 
+			// m_lbPrivateKey
+			// 
+			this.m_lbPrivateKey.Location = new System.Drawing.Point(25, 171);
+			this.m_lbPrivateKey.Name = "m_lbPrivateKey";
+			this.m_lbPrivateKey.Size = new System.Drawing.Size(62, 23);
+			this.m_lbPrivateKey.TabIndex = 5;
+			this.m_lbPrivateKey.Text = "Private key";
+			// 
 			// IopOptionsForm
 			// 
 			this.AcceptButton = this.m_btnOK;
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.m_btnCancel;
-			this.ClientSize = new System.Drawing.Size(343, 204);
+			this.ClientSize = new System.Drawing.Size(343, 239);
+			this.Controls.Add(this.m_lbPrivateKey);
+			this.Controls.Add(this.m_tbPrivateKey);
 			this.Controls.Add(this.m_grpFtps);
 			this.Controls.Add(this.m_grpConn);
 			this.Controls.Add(this.m_btnCancel);
@@ -159,14 +178,15 @@
 			this.ShowInTaskbar = false;
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
 			this.Text = "<>";
-			this.Load += new System.EventHandler(this.OnFormLoad);
 			this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.OnFormClosed);
+			this.Load += new System.EventHandler(this.OnFormLoad);
 			this.m_grpConn.ResumeLayout(false);
 			this.m_grpConn.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.m_numTimeout)).EndInit();
 			this.m_grpFtps.ResumeLayout(false);
 			this.m_grpFtps.PerformLayout();
 			this.ResumeLayout(false);
+			this.PerformLayout();
 
 		}
 
@@ -181,5 +201,7 @@
 		private System.Windows.Forms.CheckBox m_cbFtpsExplicitSsl;
 		private System.Windows.Forms.CheckBox m_cbFtpsImplicit;
 		private System.Windows.Forms.CheckBox m_cbFtpsExplicitTls;
+		private System.Windows.Forms.TextBox m_tbPrivateKey;
+		private System.Windows.Forms.Label m_lbPrivateKey;
 	}
 }

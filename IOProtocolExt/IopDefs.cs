@@ -33,5 +33,7 @@ namespace IOProtocolExt
 		public const string OptFtpsImplicit = (OptPrefix + "Ftps_Implicit");
 		public const string OptFtpsExplicitSsl = (OptPrefix + "Ftps_ExplicitSsl");
 		public const string OptFtpsExplicitTls = (OptPrefix + "Ftps_ExplicitTls");
+
+    public const string OptSshPrivateKey = (OptPrefix + "Ssh_PrivateKey");
 	}
 }
