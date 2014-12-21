@@ -1,6 +1,6 @@
 ﻿/*
   IOProtocolExt Plugin
-  Copyright (C) 2011-2012 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2011-2014 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ namespace IOProtocolExt
 
 		private void OnEcasEvent(object sender, EcasRaisingEventArgs e)
 		{
-			if(e.Event.Type.EqualsValue(EcasAppLoadPost))
+			if(e.Event.Type.Equals(EcasAppLoadPost))
 				m_bMainFormLoading = false;
 		}
 

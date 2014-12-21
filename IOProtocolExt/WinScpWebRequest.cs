@@ -1,6 +1,6 @@
 ﻿/*
   IOProtocolExt Plugin
-  Copyright (C) 2011-2012 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2011-2014 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,8 +26,10 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Diagnostics;
 
+using KeePass;
 using KeePass.App.Configuration;
 
+using KeePassLib;
 using KeePassLib.Serialization;
 using KeePassLib.Utility;
 
@@ -107,6 +109,13 @@ namespace IOProtocolExt
 			set { m_bPreAuth = value; }
 		}
 
+		private IWebProxy m_prx = null;
+		public override IWebProxy Proxy
+		{
+			get { return m_prx; }
+			set { m_prx = value; }
+		}
+
 		public WinScpWebRequest(Uri uri)
 		{
 			if(uri == null) throw new ArgumentNullException("uri");
@@ -144,15 +153,13 @@ namespace IOProtocolExt
 			strSessionUrl += m_uri.Host; // URI host is escaped
 			if(m_uri.Port >= 0) strSessionUrl += (":" + m_uri.Port.ToString());
 
-			string strRemoteDir = UrlUtil.GetFileDirectory(m_uri.AbsolutePath,
-				false, false);
-			string strRemoteFile = UrlUtil.GetFileName(m_uri.AbsolutePath);
+			// string strPath = GetUriPath(m_uri);
+			// string strRemoteDir = UrlUtil.GetFileDirectory(strPath,
+			//	false, false);
+			// string strRemoteFile = UrlUtil.GetFileName(strPath);
+			string strRemotePath = GetUriPath(m_uri);
 
-			try
-			{
-				m_wr = RunOp(strTempFile, strSessionUrl, strRemoteDir,
-					strRemoteFile);
-			}
+			try { m_wr = RunOp(strTempFile, strSessionUrl, strRemotePath); }
 			catch(Exception)
 			{
 				if(File.Exists(strTempFile)) File.Delete(strTempFile);
@@ -160,6 +167,17 @@ namespace IOProtocolExt
 			}
 
 			return m_wr;
+		}
+
+		/// <summary>
+		/// Get the absolute path of an URI without an initial '/'.
+		/// </summary>
+		private static string GetUriPath(Uri uri)
+		{
+			string str = uri.AbsolutePath;
+			if(str.StartsWith("/")) str = str.Substring(1);
+			else { Debug.Assert(false); }
+			return str;
 		}
 
 		private static StringBuilder InitScript()
@@ -172,24 +190,22 @@ namespace IOProtocolExt
 			return sbScript;
 		}
 
-		private static string GetHostKey(string strError)
-		{
-			strError = strError.Replace("\r\n", "\n");
-			strError = strError.Replace("\r", "\n");
-			string[] vLines = strError.Split(new char[] { '\n' },
-				StringSplitOptions.RemoveEmptyEntries);
-
-			foreach(string strLineIt in vLines)
-			{
-				if(strLineIt.StartsWith("ssh-rsa")) return strLineIt;
-				if(strLineIt.StartsWith("ssh-dss")) return strLineIt;
-			}
-
-			return null;
-		}
+		// private static string GetHostKey(string strError)
+		// {
+		//	strError = strError.Replace("\r\n", "\n");
+		//	strError = strError.Replace("\r", "\n");
+		//	string[] vLines = strError.Split(new char[] { '\n' },
+		//		StringSplitOptions.RemoveEmptyEntries);
+		//	foreach(string strLineIt in vLines)
+		//	{
+		//		if(strLineIt.StartsWith("ssh-rsa")) return strLineIt;
+		//		if(strLineIt.StartsWith("ssh-dss")) return strLineIt;
+		//	}
+		//	return null;
+		// }
 
 		private WebResponse RunOp(string strTempFile, string strSessionUrl,
-			string strRemoteDir, string strRemoteFile)
+			string strRemotePath)
 		{
 			WswrOp wOp;
 			if(m_strMethod == IOConnection.WrmDeleteFile) wOp = WswrOp.Delete;
@@ -200,25 +216,26 @@ namespace IOProtocolExt
 			if(wOp == WswrOp.Upload)
 				File.WriteAllBytes(strTempFile, m_lRequestData.ToArray());
 
-			StringBuilder sbHostKeyDetect = InitScript();
-			sbHostKeyDetect.AppendLine(AddCommonOpenOptions("open " +
-				strSessionUrl, strSessionUrl));
-			sbHostKeyDetect.AppendLine("exit");
-
-			string strHostKey = null;
-			try { WinScpExecutor.RunScript(sbHostKeyDetect.ToString()); }
-			catch(Exception exProbe)
-			{
-				strHostKey = GetHostKey(exProbe.Message);
-				if(string.IsNullOrEmpty(strHostKey)) throw;
-			}
+			// StringBuilder sbHostKeyDetect = InitScript();
+			// sbHostKeyDetect.AppendLine(AddCommonOpenOptions(
+			//	"open " + strSessionUrl, strSessionUrl, string.Empty));
+			// sbHostKeyDetect.AppendLine("exit");
+			// string strHostKey = null;
+			// try { WinScpExecutor.RunScript(sbHostKeyDetect.ToString()); }
+			// catch(Exception exProbe)
+			// {
+			//	strHostKey = GetHostKey(exProbe.Message);
+			//	if(string.IsNullOrEmpty(strHostKey)) throw;
+			// }
 
 			string strScript;
 			if(wOp == WswrOp.Download) // Test file exists
 			{
 				strScript = BuildScript(WswrOp.Download, true, strTempFile,
-					strSessionUrl, strRemoteDir, strRemoteFile, strHostKey);
+					strSessionUrl, strRemotePath);
 				string strResult = WinScpExecutor.RunScript(strScript);
+
+				string strRemoteFile = UrlUtil.GetFileName(strRemotePath);
 
 				strResult = strResult.Replace("\r\n", "\n");
 				strResult = strResult.Replace("\r", "\n");
@@ -240,7 +257,7 @@ namespace IOProtocolExt
 			}
 
 			strScript = BuildScript(wOp, false, strTempFile, strSessionUrl,
-				strRemoteDir, strRemoteFile, strHostKey);
+				strRemotePath);
 
 			StatusStateInfo st = null;
 			if(wOp == WswrOp.Upload)
@@ -317,44 +334,53 @@ namespace IOProtocolExt
 		}
 
 		private string BuildScript(WswrOp wOp, bool bTestOnly, string strTempFile,
-			string strSessionUrl, string strRemoteDir, string strRemoteFile,
-			string strHostKey)
+			string strSessionUrl, string strRemotePath)
 		{
 			StringBuilder sbScript = InitScript();
 
 			string strOpen = AddCommonOpenOptions("open " + strSessionUrl,
 				strSessionUrl);
-			if(!string.IsNullOrEmpty(strHostKey))
-				strOpen += " -hostkey=\"" + strHostKey + "\"";
-
 			sbScript.AppendLine(strOpen);
 
-			if(strRemoteDir.Length > 0)
-				sbScript.AppendLine("cd \"" + strRemoteDir + "\"");
+			string strRemoteDir = UrlUtil.GetFileDirectory(strRemotePath,
+				false, false);
+			string strRemoteFile = UrlUtil.GetFileName(strRemotePath);
+
+			// For compatibility with KeePass < 2.28
+			if(strRemoteDir == strRemotePath) strRemoteDir = string.Empty;
+
+			// if(strRemoteDir.Length > 0)
+			//	sbScript.AppendLine("cd \"" + strRemoteDir + "\"");
 
 			if(bTestOnly)
 			{
 				if(wOp == WswrOp.Download)
-					sbScript.AppendLine("ls \"*" + strRemoteFile + "\"");
+				{
+					string strFilter = strRemoteDir;
+					if(strFilter.Length > 0) strFilter += "/";
+					strFilter += "*" + strRemoteFile;
+					sbScript.AppendLine("ls \"" + strFilter + "\"");
+				}
 				else { Debug.Assert(false); }
 			}
 			else
 			{
 				if(wOp == WswrOp.Upload)
 					sbScript.AppendLine("put \"" + strTempFile + "\" \"" +
-						strRemoteFile + "\"");
+						strRemotePath + "\"");
 				else if(wOp == WswrOp.Download)
-					sbScript.AppendLine("get \"" + strRemoteFile + "\" \"" +
+					sbScript.AppendLine("get \"" + strRemotePath + "\" \"" +
 						strTempFile + "\"");
 				else if(wOp == WswrOp.Delete)
-					sbScript.AppendLine("rm \"" + strRemoteFile + "\"");
+					sbScript.AppendLine("rm \"" + strRemotePath + "\"");
 				else if(wOp == WswrOp.Move)
 				{
 					Uri uriTarget = new Uri(m_whcHeaders.Get(
 						IOConnection.WrhMoveFileTo));
+					string strTarget = GetUriPath(uriTarget);
 
-					sbScript.AppendLine("mv \"" + strRemoteFile + "\" \"" +
-						uriTarget.AbsolutePath + "\"");
+					sbScript.AppendLine("mv \"" + strRemotePath + "\" \"" +
+						strTarget + "\"");
 				}
 			}
 
@@ -362,8 +388,7 @@ namespace IOProtocolExt
 			return sbScript.ToString();
 		}
 
-		private static string AddCommonOpenOptions(string strOpenCmd,
-			string strSessionUrl)
+		private string AddCommonOpenOptions(string strOpenCmd, string strSessionUrl)
 		{
 			if(string.IsNullOrEmpty(strOpenCmd)) return strOpenCmd;
 			if(strSessionUrl == null) { Debug.Assert(false); return strOpenCmd; }
@@ -382,6 +407,109 @@ namespace IOProtocolExt
 					str += " -explicitssl";
 				if(cfg.GetBool(IopDefs.OptFtpsExplicitTls, false))
 					str += " -explicittls";
+			}
+
+			// if(!string.IsNullOrEmpty(strHostKey))
+			//	str += " -hostkey=\"" + strHostKey + "\"";
+			str += " -hostkey=*";
+
+			string strRawCfg = string.Empty;
+
+			try
+			{
+				Uri uriProxy = GetProxyUri(strSessionUrl, false);
+				if(uriProxy == null)
+					uriProxy = GetProxyUri(strSessionUrl, true);
+
+				if(uriProxy != null)
+				{
+					strRawCfg += " ProxyMethod=3";
+
+					if(!string.IsNullOrEmpty(uriProxy.Host))
+						strRawCfg += " ProxyHost=" + EncodeParam(uriProxy.Host);
+					if(uriProxy.Port > 0)
+						strRawCfg += " ProxyPort=" + uriProxy.Port.ToString();
+
+					string strPrxUserName = null, strPrxPassword = null;
+
+					ICredentials iCred = m_prx.Credentials;
+					NetworkCredential nc = (iCred as NetworkCredential);
+					if((nc == null) && (iCred != null))
+						nc = iCred.GetCredential(uriProxy, "Basic");
+					if(nc != null)
+					{
+						strPrxUserName = nc.UserName;
+						strPrxPassword = nc.Password;
+					}
+
+					if(!string.IsNullOrEmpty(strPrxUserName))
+						strRawCfg += " ProxyUsername=" + EncodeParam(strPrxUserName);
+					if(!string.IsNullOrEmpty(strPrxPassword))
+						strRawCfg += " ProxyPassword=" + EncodeParam(strPrxPassword);
+				}
+			}
+			catch(Exception)
+			{
+				Debug.Assert(false);
+
+				if(Program.Config.Integration.ProxyType == ProxyServerType.Manual)
+				{
+					string strPrxHost = Program.Config.Integration.ProxyAddress;
+					string strPrxPort = Program.Config.Integration.ProxyPort;
+					string strPrxUserName = Program.Config.Integration.ProxyUserName;
+					string strPrxPassword = Program.Config.Integration.ProxyPassword;
+
+					strRawCfg += " ProxyMethod=3";
+
+					if(!string.IsNullOrEmpty(strPrxHost))
+						strRawCfg += " ProxyHost=" + EncodeParam(strPrxHost);
+					if(!string.IsNullOrEmpty(strPrxPort))
+						strRawCfg += " ProxyPort=" + EncodeParam(strPrxPort);
+					if(!string.IsNullOrEmpty(strPrxUserName))
+						strRawCfg += " ProxyUsername=" + EncodeParam(strPrxUserName);
+					if(!string.IsNullOrEmpty(strPrxPassword))
+						strRawCfg += " ProxyPassword=" + EncodeParam(strPrxPassword);
+				}
+			}
+
+			strRawCfg = strRawCfg.Trim();
+			if(strRawCfg.Length > 0)
+				str += " -rawsettings " + strRawCfg;
+
+			return str;
+		}
+
+		private Uri GetProxyUri(string strSessionUrl, bool bForceHttp)
+		{
+			if(string.IsNullOrEmpty(strSessionUrl)) { Debug.Assert(false); return null; }
+
+			try
+			{
+				if(bForceHttp && !strSessionUrl.StartsWith("http:",
+					StrUtil.CaseIgnoreCmp))
+					strSessionUrl = "http://" + UrlUtil.RemoveScheme(strSessionUrl);
+
+				Uri uriSession = new Uri(strSessionUrl);
+				if((m_prx != null) && !m_prx.IsBypassed(uriSession))
+				{
+					Uri uriProxy = m_prx.GetProxy(uriSession);
+					Debug.Assert(uriProxy != uriSession);
+					return uriProxy;
+				}
+			}
+			catch(Exception) { Debug.Assert(false); }
+
+			return null;
+		}
+
+		private static string EncodeParam(string str)
+		{
+			if(str == null) { Debug.Assert(false); return string.Empty; }
+
+			foreach(char ch in str)
+			{
+				if(char.IsWhiteSpace(ch))
+					return ("\"" + str + "\"");
 			}
 
 			return str;

@@ -1,6 +1,6 @@
 ﻿/*
   IOProtocolExt Plugin
-  Copyright (C) 2011-2012 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2011-2014 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -88,7 +88,9 @@ namespace IOProtocolExt
 			if(string.IsNullOrEmpty(m_strDataFile) || !m_bJit)
 			{
 				byte[] pb = new byte[0];
-				return new MemoryStream(pb, false);
+				// Cache the empty response to avoid double script execution
+				m_sResponse = new MemoryStream(pb, false);
+				return m_sResponse;
 			}
 
 			m_sResponse = new WinScpJitStream(m_strScript, m_strDataFile,
